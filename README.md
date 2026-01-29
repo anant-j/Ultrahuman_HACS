@@ -18,3 +18,8 @@ This integration uses the official Ultrahuman Vision API to retrieve Ultrahuman 
 7. Click Generate Token
 8. Copy token as this will be required during integration onboarding
 
+## Notes:
+1. This integration only shows data  present on Ultrahuman's servers. Therefore the ring must sync with the mobile app for the latest data.
+2. The integration fetches data periodically from Ultrahuman's servers.
+3. Ultrahuman's API only returns the metrics available at time of fetch. Due to this sensors will be marked unknown every time that metric is missing from the API response.
+(Generally the V02 metric is always available).
