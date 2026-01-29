@@ -23,3 +23,4 @@ This integration uses the official Ultrahuman Vision API to retrieve Ultrahuman 
 2. The integration fetches data periodically from Ultrahuman's servers.
 3. Ultrahuman's API only returns the metrics available at time of fetch. Due to this sensors will be marked unknown every time that metric is missing from the API response.
 (Generally the V02 metric is always available).
+4. Please feel free to create a new Issue or Pull Request to introduce any missing sensor entities you would like to see this integration provide.
