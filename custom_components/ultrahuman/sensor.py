@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -15,25 +16,24 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from .api import UltrahumanApiClient
-from .const import (
-    CONF_API_TOKEN,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    DOMAIN,
-)
+import aiohttp
 
+DOMAIN = "ultrahuman"
 _LOGGER = logging.getLogger(__name__)
 
-# Sensor definitions: (name, metric_type, value_key)
-SENSORS: tuple[tuple[str, str, str], ...] = (
-    ("Night Resting HR", "night_rhr", "avg"),
-    ("Sleep HRV", "avg_sleep_hrv", "value"),
-    ("Sleep RHR", "sleep_rhr", "value"),
-    ("Recovery Index", "recovery_index", "value"),
-    ("Movement Index", "movement_index", "value"),
-    ("Active Minutes", "active_minutes", "value"),
-    ("VO2 Max", "vo2_max", "value"),
+API_URL = "https://partner.ultrahuman.com/api/v1/partner/daily_metrics"
+
+# (Name, metric_type, value_key, is_timestamp)
+SENSORS: tuple[tuple[str, str, str, bool], ...] = (
+    ("Night Resting HR", "night_rhr", "avg", False),
+    ("Sleep HRV", "avg_sleep_hrv", "value", False),
+    ("Sleep RHR", "sleep_rhr", "value", False),
+    ("Recovery Index", "recovery_index", "value", False),
+    ("Movement Index", "movement_index", "value", False),
+    ("Active Minutes", "active_minutes", "value", False),
+    ("VO2 Max", "vo2_max", "value", False),
+    ("Sleep Start", "sleep", "bedtime_start", True),
+    ("Sleep End", "sleep", "bedtime_end", True),
 )
 
 
@@ -43,24 +43,42 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Ultrahuman sensors from a config entry."""
-    client = UltrahumanApiClient(entry.data[CONF_API_TOKEN])
-    update_interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    api_token = entry.data["api_token"]
+
+    async def _fetch_data():
+        today = datetime.now().strftime("%Y-%m-%d")
+        headers = {
+            "Authorization": api_token,
+            "Accept": "application/json",
+        }
+        params = {"date": today}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(API_URL, headers=headers, params=params, timeout=20) as resp:
+                resp.raise_for_status()
+                payload = await resp.json()
+                return payload["data"]
 
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
         name="Ultrahuman Ring",
-        update_method=client.async_get_metrics,
-        update_interval=timedelta(minutes=update_interval),
+        update_method=_fetch_data,
+        update_interval=timedelta(minutes=60),
     )
 
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-
     async_add_entities(
-        UltrahumanSensor(entry.entry_id, coordinator, name, metric_type, value_key)
-        for name, metric_type, value_key in SENSORS
+        UltrahumanSensor(
+            entry.entry_id,
+            coordinator,
+            name,
+            metric_type,
+            value_key,
+            is_timestamp,
+        )
+        for name, metric_type, value_key, is_timestamp in SENSORS
     )
 
 
@@ -76,17 +94,18 @@ class UltrahumanSensor(CoordinatorEntity, SensorEntity):
         name: str,
         metric_type: str,
         value_key: str,
+        is_timestamp: bool,
     ) -> None:
-        """Initialize the sensor."""
         super().__init__(coordinator)
         self._metric_type = metric_type
         self._value_key = value_key
+        self._is_timestamp = is_timestamp
+
         self._attr_name = name
-        self._attr_unique_id = f"{entry_id}_{metric_type}"
+        self._attr_unique_id = f"{entry_id}_{metric_type}_{value_key}"
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information."""
         return DeviceInfo(
             identifiers={(DOMAIN, "ultrahuman_ring")},
             name="Ultrahuman Ring",
@@ -95,8 +114,7 @@ class UltrahumanSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def native_value(self) -> float | None:
-        """Return the sensor value."""
+    def native_value(self):
         if not self.coordinator.data:
             return None
 
@@ -104,7 +122,7 @@ class UltrahumanSensor(CoordinatorEntity, SensorEntity):
         if not metrics_by_day:
             return None
 
-        # Get the first available day's metrics
+        # API date key may not match local date; take the only returned day
         day_key = next(iter(metrics_by_day), None)
         if not day_key:
             return None
@@ -118,4 +136,20 @@ class UltrahumanSensor(CoordinatorEntity, SensorEntity):
         if not metric:
             return None
 
-        return metric.get("object", {}).get(self._value_key)
+        obj = metric.get("object", {})
+        value = obj.get(self._value_key)
+
+        if value is None:
+            return None
+
+        if self._is_timestamp:
+            tz = self.coordinator.data.get("latest_time_zone")
+            try:
+                return datetime.fromtimestamp(
+                    value,
+                    tz=ZoneInfo(tz) if tz else None,
+                ).isoformat()
+            except Exception:
+                return None
+
+        return value
