@@ -103,7 +103,7 @@ class UltrahumanSensor(CoordinatorEntity, SensorEntity):
             identifiers={(DOMAIN, "ultrahuman_ring")},
             name="Ultrahuman Ring",
             manufacturer="Ultrahuman",
-            model="Ring",
+            model="Ring AIR",
         )
 
     @property
