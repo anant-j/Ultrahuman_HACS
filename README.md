@@ -12,7 +12,7 @@ This integration uses the official Ultrahuman Vision API to retrieve Ultrahuman 
 ## Obtaining API-Key
 1. Visit https://vision.ultrahuman.com/developer
 2. Log in
-3. Click on "Generate New Token"
+3. Click on "Personal API Tokens" and then "Generate New Token"
 4. Enter any suitable name for token name (ex: "YourName Ultrahuman Air Token")
 5. (OPTIONAL) Set token expiry to 10 years
 6. Select RING DATA ACCESS checkbox
