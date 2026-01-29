@@ -40,9 +40,7 @@ class UltrahumanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_API_TOKEN,
-                    ): str,
+                    vol.Required(CONF_API_TOKEN): str,
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=DEFAULT_UPDATE_INTERVAL,

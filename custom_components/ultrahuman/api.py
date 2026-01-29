@@ -1,8 +1,7 @@
 """API client for Ultrahuman Ring."""
-
+from __future__ import annotations
 from datetime import datetime
 import aiohttp
-
 from .const import API_URL, API_TIMEOUT
 
 
@@ -10,7 +9,6 @@ class UltrahumanApiClient:
     """Client to interact with Ultrahuman API."""
 
     def __init__(self, api_token: str) -> None:
-        """Initialize the API client."""
         self._api_token = api_token
         self._headers = {
             "Authorization": api_token,
@@ -18,15 +16,15 @@ class UltrahumanApiClient:
         }
 
     async def async_validate_token(self) -> bool:
-        """Validate the API token."""
+        """Validate API token by making a real request."""
         try:
-            await self.async_get_metrics()
+            await self.async_get_raw_metrics()
             return True
         except Exception:
             return False
 
-    async def async_get_metrics(self) -> dict:
-        """Fetch daily metrics from the API."""
+    async def async_get_raw_metrics(self) -> dict:
+        """Fetch raw daily metrics from Ultrahuman API."""
         today = datetime.now().strftime("%Y-%m-%d")
         params = {"date": today}
 
