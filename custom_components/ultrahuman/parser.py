@@ -13,18 +13,39 @@ class UltrahumanMetric:
     name: str
 
 
-# 🔑 SINGLE SOURCE OF SENSOR DEFINITIONS
+# 🔑 SINGLE SOURCE OF TRUTH FOR ALL SENSORS
 METRICS: tuple[UltrahumanMetric, ...] = (
+    # ---- Cardio ----
     UltrahumanMetric("hr_last", "Heart Rate"),
+    UltrahumanMetric("night_rhr", "Night Resting HR"),
     UltrahumanMetric("hrv_avg", "HRV"),
+    UltrahumanMetric("sleep_rhr", "Sleep RHR"),
     UltrahumanMetric("spo2_avg", "SpO2"),
-    UltrahumanMetric("steps", "Steps"),
-    UltrahumanMetric("skin_temp", "Skin Temperature"),
     UltrahumanMetric("vo2_max", "VO2 Max"),
-    UltrahumanMetric("sleep_start", "Sleep Start"),
-    UltrahumanMetric("sleep_end", "Sleep End"),
+
+    # ---- Sleep ----
     UltrahumanMetric("sleep_score", "Sleep Score"),
     UltrahumanMetric("total_sleep", "Total Sleep"),
+    UltrahumanMetric("sleep_start", "Sleep Start"),
+    UltrahumanMetric("sleep_end", "Sleep End"),
+    UltrahumanMetric("time_in_bed", "Time in Bed"),
+    UltrahumanMetric("sleep_efficiency", "Sleep Efficiency"),
+
+    # ---- Recovery & Activity ----
+    UltrahumanMetric("recovery_index", "Recovery Index"),
+    UltrahumanMetric("movement_index", "Movement Index"),
+    UltrahumanMetric("active_minutes", "Active Minutes"),
+    UltrahumanMetric("steps", "Steps"),
+    UltrahumanMetric("calories", "Calories Burned"),
+
+    # ---- Temperature & Stress ----
+    UltrahumanMetric("skin_temp", "Skin Temperature"),
+    UltrahumanMetric("temp_deviation", "Temperature Deviation"),
+    UltrahumanMetric("stress_score", "Stress Score"),
+
+    # ---- Readiness ----
+    UltrahumanMetric("readiness_score", "Readiness Score"),
+    UltrahumanMetric("body_battery", "Body Battery"),
 )
 
 
@@ -39,11 +60,17 @@ class UltrahumanDataParser:
         self._day_key = next(iter(metrics_by_day), None)
         self._metrics = metrics_by_day.get(self._day_key, []) if self._day_key else []
 
+    # ---------- helpers ----------
+
     def _get_metric(self, metric_type: str) -> dict | None:
         return next(
             (m for m in self._metrics if m.get("type") == metric_type),
             None,
         )
+
+    def _obj(self, metric_type: str) -> dict:
+        metric = self._get_metric(metric_type)
+        return metric.get("object", {}) if metric else {}
 
     def _iso(self, ts: int | None) -> str | None:
         if not ts:
@@ -53,45 +80,80 @@ class UltrahumanDataParser:
             tz=ZoneInfo(self._tz) if self._tz else None,
         ).isoformat()
 
-    # 👇 ONLY THIS METHOD NEEDS EDITING TO ADD METRICS
+    # ---------- public API ----------
+
     def get_value(self, key: str):
+        # ---- Cardio ----
         if key == "hr_last":
-            m = self._get_metric("hr")
-            return m["object"].get("last_reading") if m else None
+            return self._obj("hr").get("last_reading")
+
+        if key == "night_rhr":
+            return self._obj("night_rhr").get("avg")
 
         if key == "hrv_avg":
-            m = self._get_metric("hrv")
-            return m["object"].get("avg") if m else None
+            return self._obj("avg_sleep_hrv").get("value")
+
+        if key == "sleep_rhr":
+            return self._obj("sleep_rhr").get("value")
 
         if key == "spo2_avg":
-            m = self._get_metric("spo2")
-            return m["object"].get("avg") if m else None
-
-        if key == "steps":
-            m = self._get_metric("steps")
-            return m["object"].get("total") if m else None
-
-        if key == "skin_temp":
-            m = self._get_metric("temp")
-            return m["object"].get("last_reading") if m else None
+            return self._obj("spo2").get("avg")
 
         if key == "vo2_max":
-            m = self._get_metric("vo2_max")
-            return m["object"].get("value") if m else None
+            return self._obj("vo2_max").get("value")
 
-        sleep = self._get_metric("sleep")
-        sleep_obj = sleep.get("object") if sleep else {}
-
-        if key == "sleep_start":
-            return self._iso(sleep_obj.get("bedtime_start"))
-
-        if key == "sleep_end":
-            return self._iso(sleep_obj.get("bedtime_end"))
+        # ---- Sleep ----
+        sleep = self._obj("sleep")
 
         if key == "sleep_score":
-            return sleep_obj.get("sleep_score", {}).get("score")
+            return sleep.get("sleep_score", {}).get("score")
 
         if key == "total_sleep":
-            return sleep_obj.get("total_sleep", {}).get("minutes")
+            return sleep.get("total_sleep", {}).get("minutes")
+
+        if key == "sleep_start":
+            return self._iso(sleep.get("bedtime_start"))
+
+        if key == "sleep_end":
+            return self._iso(sleep.get("bedtime_end"))
+
+        if key == "time_in_bed":
+            return sleep.get("time_in_bed", {}).get("minutes")
+
+        if key == "sleep_efficiency":
+            return sleep.get("sleep_efficiency")
+
+        # ---- Recovery & Activity ----
+        if key == "recovery_index":
+            return self._obj("recovery_index").get("value")
+
+        if key == "movement_index":
+            return self._obj("movement_index").get("value")
+
+        if key == "active_minutes":
+            return self._obj("active_minutes").get("value")
+
+        if key == "steps":
+            return self._obj("steps").get("total")
+
+        if key == "calories":
+            return self._obj("calories").get("total")
+
+        # ---- Temperature & Stress ----
+        if key == "skin_temp":
+            return self._obj("skin_temperature").get("avg")
+
+        if key == "temp_deviation":
+            return self._obj("skin_temperature").get("deviation")
+
+        if key == "stress_score":
+            return self._obj("stress").get("score")
+
+        # ---- Readiness ----
+        if key == "readiness_score":
+            return self._obj("readiness").get("score")
+
+        if key == "body_battery":
+            return self._obj("body_battery").get("value")
 
         return None
