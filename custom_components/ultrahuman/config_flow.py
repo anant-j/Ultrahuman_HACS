@@ -34,7 +34,7 @@ class UltrahumanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     title="Ultrahuman Ring",
                     data=user_input,
                 )
-            errors["base"] = "invalid_auth"
+            errors["base"] = "invalid_api_token"
 
         return self.async_show_form(
             step_id="user",
