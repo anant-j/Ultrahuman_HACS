@@ -28,6 +28,9 @@ class UltrahumanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Check for duplicate API token
+            self._async_abort_entries_match({CONF_API_TOKEN: user_input[CONF_API_TOKEN]})
+
             client = UltrahumanApiClient(user_input[CONF_API_TOKEN])
             if await client.async_validate_token():
                 return self.async_create_entry(
