@@ -48,7 +48,7 @@ METRICS: tuple[UltrahumanMetric, ...] = (
     UltrahumanMetric("steps", "Steps", "mdi:shoe-print", None, SensorStateClass.TOTAL_INCREASING, "steps"),
 
     # ---- Temperature & Stress ----
-    UltrahumanMetric("skin_temp", "Skin Temperature", "mdi:thermometer", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS),
+    UltrahumanMetric("temp", "Temperature", "mdi:thermometer", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, UnitOfTemperature.CELSIUS),
     )
 
 
@@ -137,7 +137,7 @@ class UltrahumanDataParser:
             return self._obj("steps").get("total")
 
         # ---- Temperature & Stress ----
-        if key == "skin_temp":
-            return self._obj("skin_temperature").get("last_reading")
+        if key == "temp":
+            return self._obj("temp").get("last_reading")
 
         return None
