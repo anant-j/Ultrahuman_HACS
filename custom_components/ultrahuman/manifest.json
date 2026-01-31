@@ -11,5 +11,6 @@
     "codeowners": [
         "@anant-j"
     ],
+    "integration_type": "hub",
     "config_flow": true
 }
