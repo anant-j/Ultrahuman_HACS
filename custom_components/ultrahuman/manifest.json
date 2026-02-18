@@ -1,17 +1,17 @@
 {
     "domain": "ultrahuman",
     "name": "Ultrahuman Ring",
-    "version": "1.0.0",
+    "codeowners": [
+        "@anant-j"
+    ],
+    "config_flow": true,
+    "dependencies": [],
     "documentation": "https://github.com/anant-j/Ultrahuman_Ring_HACS",
+    "integration_type": "hub",
+    "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/anant-j/Ultrahuman_Ring_HACS/issues",
     "requirements": [
         "aiohttp>=3.8.0"
     ],
-    "dependencies": [],
-    "codeowners": [
-        "@anant-j"
-    ],
-    "integration_type": "hub",
-    "config_flow": true,
-    "iot_class": "cloud_polling"
+    "version": "1.0.0"
 }
